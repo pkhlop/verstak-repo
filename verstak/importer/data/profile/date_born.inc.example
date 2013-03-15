@@ -1,0 +1,16 @@
+<?php
+
+$profile_field = array(
+  'title' => 'Birthday',
+  'name' => 'profile_birthday',
+  'explanation' => 'This year birthday date',
+  'category' => 'User',
+  'type' => 'date',
+  'weight' => 1,
+  'required' => 0,
+  'register' => 0,
+  'visibility' => 1,
+  'autocomplete' => 0,
+  'options' => "",
+  'page' => ''    
+);

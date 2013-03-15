@@ -1,0 +1,108 @@
+#Mandatory requirements:
+
+* Operating system - Linux
+* to build the project, you must have the following ruby 1.8.7 and gem's:
+
+    * builder (3.0.0)
+    * childprocess (0.2.1)
+    * cucumber (1.0.2)
+    * diff-lcs (1.1.2)
+    * ffi (1.0.9)
+    * gherkin (2.4.11)
+    * json (1.5.3)
+    * json_pure (1.5.3)
+    * rake (0.9.2)
+    * rspec (2.6.0)
+    * rspec-core (2.6.4)
+    * rspec-expectations (2.6.0)
+    * rspec-mocks (2.6.0)
+    * rubyzip (0.9.4)
+    * selenium-webdriver (2.4.0)
+    * term-ansicolor (1.0.6)
+    * watir-webdriver (0.3.2)
+
+* You need to have installed drush (sudo apt-get install drush) http://drush.ws
+  https://bugs.launchpad.net/ubuntu/+source/drush/+bug/674269 there is a bug in Ubuntu 10.10
+  you can put it with an alternate repository
+  Another thing you can do is use Brian Mercer's PPA: https://launchpad.net/~brianmercer/+archive/drush
+  sudo add-apt-repository ppa:brianmercer/drush
+  
+* You must have an Internet connection
+* apache2, mysql, php
+* apache mod_rewrite
+* GUI
+* firefox
+
+#Desirable requirements:
+
+* it is desirable to have installed squid to cache loaded modules with drush
+
+  * sudo apt-get install squid3
+  * add to ~/.wgetrc
+    
+    HTTP_PROXY=127.0.0.1:3128
+
+    FTP_PROXY=127.0.0.1:3128
+    
+  wget, by which modules are loaded, download them through a caching proxy squid, speed assembly grown significantly
+
+* phpmyadmin
+
+
+#Raising the environment
+
+  * do checkout from a repository ssh://git@github.com:AlexKhl/verstak-repo.git
+  * create a database user (example: verstak) and give him the rights to all the database matches the name pattern (example: verstak_%) and the right to create databases
+  * copy template.config.rb to config.rb, override necessary config parameters in it
+  * configure apache2: create directory /var/www/verstak, make the directory owned by user, under which the assembly will go, give to him all rights on directory
+  * settings in the config file, you need to pay attention:
+
+      version
+      : BUILD_VERSION = "VERSTAK-7.1.0"
+      
+      project base directory
+      : BASE_DIR = "/var/www/verstak"
+      
+      directory with assemblies
+      : BUILDS_DIR = "builds" in this case directory "/var/www/verstak/builds" must exist
+
+      address, by which opened a list compiled builds (leave the default)
+      : BUILD_BASE_URL = "http://localhost/verstak/#{BUILDS_DIR}"
+      
+      address, by which main page of assembly will be opened (leave the default)
+      : BUILD_URL = "#{BUILD_BASE_URL}/#{BUILD_NUMBER}/#{SITE_DIR_NAME}"
+      
+      address of task sheduler (leave the default)
+      : CRON_URL = "#{BUILD_URL}/#{SITE_DIR_NAME}/cron.php"
+      
+      parameters, which view for all commands of drush: -v verbose, -d debug output, -y automatically validate all actions. if exclude check mark "-v -d" console output will be minimal
+      : DRUSH_COMMAND_PARAMS = "-v -d -y"
+      
+      Drupal version with which we are working
+      : DRUSH_DRUPAL_VERSION = "drupal-7"
+      
+      user login of site administrator (will be created automatically)
+      : DRUSH_DRUPAL_ACC_NAME ="verstak"
+      
+      administrator password
+      : DRUSH_DRUPAL_ACC_PASS ="<PASS>"
+      
+      administrator e-mail
+      : DRUSH_DRUPAL_ACC_MAIL ="example@mail.com"
+      
+      site e-mail
+      : DRUSH_DRUPAL_SITE_MAIL ="example@mail.com"
+      
+      data base user
+      : MYSQL_USER = "verstak"
+      
+      data base user password
+      : MYSQL_PASS = "<PASS>"
+      
+      data bse host
+      : MYSQL_HOST = "localhost"
+    
+#Assembly
+
+* in the console, in the root directory of the project input "rake"
+* if the environment variable is a variable BUILD_NUMBER, it is used as a build number, or takes the current date-time

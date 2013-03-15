@@ -1,0 +1,14 @@
+<?php
+$menu['menu']['menu_name'] = 'top-tabs';
+$menu['menu']['title'] = 'Site-top tabs menu';
+$menu['menu']['description'] = 'Site-top tabs menu';
+
+
+$menu['items'] ="
+Home|<front>
+About|<front>
+Blog|<front>
+Support|<front>
+News|<front>
+Contact Us|<front>
+";
