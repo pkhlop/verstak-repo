@@ -1,8 +1,6 @@
 require "rubygems"
 require 'json'
 
-$buildnumber = ENV['BUILD_NUMBER'].nil? ? Time.now.strftime("%Y_%m_%d_%H_%M_%S") : ENV['BUILD_NUMBER']
-
 class Object
   def def_if_not_defined(const, value)
     mod = self.is_a?(Module) ? self : self.class
@@ -22,7 +20,7 @@ class VerstakConf
   #DIRS#
   def_if_not_defined :CURRENT_DIR, File.expand_path(File.dirname(__FILE__))
   def_if_not_defined :BUILD_NUMBER, $buildnumber
-  def_if_not_defined :BUILD_VERSION, "verstak-7.01"
+  def_if_not_defined :BUILD_VERSION, "verstak_7_01"
   def_if_not_defined :BASE_DIR, "/var/www/verstak"
   def_if_not_defined :BUILDS_DIR, "builds"
   def_if_not_defined :LAST_BUILD_DIR, "lastbuild"
@@ -39,9 +37,9 @@ class VerstakConf
 
   def_if_not_defined :DISTR_DIR, BASE_DIR + "/distr"
 
-  def_if_not_defined :VERSTAK_DIR, "#{CURRENT_DIR}/verstak"
+  def_if_not_defined :VERSTAK_DIR, "#{CURRENT_DIR}"
   def_if_not_defined :IMPORTER_DIR, "#{VERSTAK_DIR}/importer"
-  def_if_not_defined :DRUSH_DIR, "#{VERSTAK_DIR}/drush"
+  def_if_not_defined :DRUSH_DIR, "#{CURRENT_DIR}/sites/drush"
 
 
   #DRUSH#
@@ -52,12 +50,13 @@ class VerstakConf
   def_if_not_defined :DRUSH_DRUPAL_ACC_MAIL, "mail@example.com"
   def_if_not_defined :DRUSH_DRUPAL_SITE_MAIL, "mail@example.com"
   def_if_not_defined :DRUSH_DRUPAL_SITE_NAME, "#{BUILD_VERSION}.#{BUILD_NUMBER}"
+  def_if_not_defined :DRUSH_DRUPAL_SITE_DEFAULT_THEME, "batik"
 
   #MySQL#
   def_if_not_defined :MYSQL_USER, "verstak"
   def_if_not_defined :MYSQL_PASS, "<PASS>"
   def_if_not_defined :MYSQL_HOST, "localhost"
-  def_if_not_defined :MYSQL_DBNAME, "#{MYSQL_USER}_#{BUILD_VERSION}.#{BUILD_NUMBER}"
+  def_if_not_defined :MYSQL_DBNAME, "#{MYSQL_USER}_#{BUILD_VERSION}_#{BUILD_NUMBER}".gsub('-', '_')
   def_if_not_defined :MYSQL_CONNECTION_STRING, "mysql://#{VerstakConf::MYSQL_USER}:#{VerstakConf::MYSQL_PASS}@#{VerstakConf::MYSQL_HOST}/#{VerstakConf::MYSQL_DBNAME}"
 
   #Content Settings#
@@ -67,7 +66,7 @@ class VerstakConf
     # save config in JSON for php scripts
     conf = Hash.new
     VerstakConf.constants.each do |name|
-      conf[name] = VerstakConf.module_eval(name)
+      conf[name] = VerstakConf.const_get(name)
     end
 
     file = File.new(file, 'w')
