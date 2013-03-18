@@ -227,7 +227,7 @@ task :drupal_entities_import do
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::IMPORTER_DIR}/importer.php"
+             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/importer.php"
 
 end
 
@@ -236,7 +236,7 @@ task :drupal_configure do
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::IMPORTER_DIR}/configure.php"
+             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/configure.php"
 
   system "chmod -R u+rwX #{VerstakConf::BUILD_SITE_DIR_FULL}"
 
