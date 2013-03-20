@@ -1,6 +1,0 @@
-<?php
-$date_format['name'] = 'custom1';
-$date_format['title'] = 'day month (j F)';
-$date_format['locked'] = 0;
-$date_format['format'] = 'j F';
-$date_format['type'] = 'custom';

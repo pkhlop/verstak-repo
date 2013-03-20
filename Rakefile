@@ -1,3 +1,5 @@
+$buildnumber = $buildnumber  ? $buildnumber : ENV['BUILD_NUMBER'].nil? ? Time.now.strftime("%Y_%m_%d_%H_%M_%S") : ENV['BUILD_NUMBER']
+
 require "rubygems"
 require 'json'
 
@@ -42,13 +44,11 @@ end
 
 desc "Generate new config and save it"
 task :configure do
-  require "config"
   VerstakConf::export_json
 end
 
 desc "Load persisted config"
 task :load_config => [] do
-  require "config"
   VerstakConf::import_json
 end
 
@@ -119,12 +119,11 @@ task :clean_build => [] do
 
 end
 
-task :deploy_build => [] do
+task :deploy_build => [:clean_build] do
   Dir::mkdir VerstakConf::BUILD_BASE_DIR
   Dir::mkdir VerstakConf::BUILD_SITE_LOG
   Dir::mkdir VerstakConf::BUILD_SITE_TMP
   Dir::mkdir VerstakConf::BUILD_SITE_DIR_FULL
-
 
   rm_f "#{VerstakConf::BASE_DIR}/#{VerstakConf::BUILDS_DIR}/#{VerstakConf::LAST_BUILD_DIR}"
   ln_sf VerstakConf::BUILD_BASE_DIR, "#{VerstakConf::BASE_DIR}/#{VerstakConf::BUILDS_DIR}/#{VerstakConf::LAST_BUILD_DIR}"
@@ -135,6 +134,7 @@ task :install_drupal => [] do
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS}"+
              " --destination=#{VerstakConf::BUILD_BASE_DIR}"+
              " --drupal-project-rename=#{VerstakConf::SITE_DIR_NAME}"+
+             " --cache"+
              " dl #{VerstakConf::DRUSH_DRUPAL_VERSION}"
 
   system "mysql"+
@@ -164,7 +164,7 @@ task :install_drupal => [] do
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} vset cache 0"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
 
-  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} preprocess_css 0"+
+  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} vset preprocess_css 0"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} vset preprocess_js 0"+
@@ -173,10 +173,10 @@ task :install_drupal => [] do
 end
 
 task :drupal_custom_modules_deploy do
-  puts "deploy CUSTOM modules"
-  copy_recursive("#{VerstakConf::CURRENT_DIR}/sites/modules", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
-  copy_recursive("#{VerstakConf::CURRENT_DIR}/sites/themes", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
-  copy_recursive("#{VerstakConf::CURRENT_DIR}/sites/libraries", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
+  puts "deploy Custom modules"
+  copy_recursive("#{VerstakConf::CUSTOMIZATION_PATH}/sites/modules", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
+  copy_recursive("#{VerstakConf::CUSTOMIZATION_PATH}/sites/themes", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
+  copy_recursive("#{VerstakConf::CUSTOMIZATION_PATH}/sites/libraries", "#{VerstakConf::BUILD_SITE_DIR_FULL}/sites/all/")
 end
 
 def copy_recursive(from, to)
@@ -185,12 +185,13 @@ def copy_recursive(from, to)
 end
 
 task :drupal_modules_download do
-  file = File.open "#{VerstakConf::DRUSH_DIR}/module_list.txt"
+  file = File.open "#{VerstakConf::CUSTOMIZATION_PATH}/drush/module_list.txt"
   a = file.read.to_s
   mlist = a.strip.gsub(/\n/, ' ')
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} pm-download"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
+             " --cache"+
              " #{mlist}"
 
   Rake::Task[:drupal_custom_modules_deploy].invoke
@@ -199,7 +200,7 @@ end
 
 
 task :drupal_modules_enable do
-  file = File.open "#{VerstakConf::DRUSH_DIR}/module_enable_list.txt"
+  file = File.open "#{VerstakConf::CUSTOMIZATION_PATH}/drush/module_enable_list.txt"
   a = file.read.to_s
   mlist = a.strip.gsub(/\n/, ' ')
 
@@ -218,7 +219,7 @@ task :drupal_modules_enable do
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} vset"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
              " theme_default"+
-             " zen"
+             " #{VerstakConf::DRUSH_DRUPAL_SITE_DEFAULT_THEME}"
 
 end
 
@@ -226,7 +227,7 @@ task :drupal_entities_import do
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::IMPORTER_DIR}/importer.php"
+             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/importer.php"
 
 end
 
@@ -235,8 +236,9 @@ task :drupal_configure do
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::IMPORTER_DIR}/configure.php"
+             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/configure.php"
 
+  system "chmod -R u+rwX #{VerstakConf::BUILD_SITE_DIR_FULL}"
 
 end
 

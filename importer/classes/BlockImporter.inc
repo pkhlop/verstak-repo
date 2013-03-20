@@ -87,7 +87,7 @@ class BlockImporter{
         $form_state['values'] = $block;
         $form_state['values']['form_id'] = 'block_admin_configure';
         echo 'Set css class\n';
-        block_class_form_submit($form, &$form_state);
+        block_class_form_submit($form, $form_state);
       }
     }
     

@@ -1,0 +1,5 @@
+require "./config.rb"
+require "#{VerstakConf::VERSTAK_DIR}/default.config.rb"
+
+load "#{VerstakConf::VERSTAK_DIR}/Rakefile"
+
