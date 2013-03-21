@@ -16,7 +16,7 @@ class MenuImporter{
       $form_state = array();
       $form_state['values'] = $menu['menu'];
       echo "Add menu: \"{$menu[menu][menu_name]}::{$menu[menu][title]}\"\n";
-      drupal_form_submit('menu_edit_menu', $form_state);
+      drupal_form_submit('menu_edit_menu', $form_state, array(), 'create', array());
 
       $items = $this->ParseMenuItems($menu);
       $this->ImportMenuItems($menu, $items);

@@ -10,7 +10,7 @@ task :dev_create => [:set_dev_env,:new_build] do
 end
 
 desc "Update dev"
-task :dev_update => [:set_dev_env, :configure, :drupal_custom_modules_deploy, :final_actions_after_build] do
+task :dev_update => [:set_dev_env, :configure, :drupal_custom_modules_deploy] do
 end
 
 desc "Remove dev"
@@ -31,9 +31,7 @@ task :new_build => [
     :install_drupal,
     :drupal_modules_download,
     :drupal_modules_enable,
-    :drupal_entities_import,
-    :final_actions_after_build,
-    :drupal_configure
+    :drupal_scripts_run
 ] do
 end
 
@@ -49,6 +47,7 @@ end
 
 desc "Load persisted config"
 task :load_config => [] do
+  puts "Load config"
   VerstakConf::import_json
 end
 
@@ -110,6 +109,8 @@ end
 
 desc "Clean build"
 task :clean_build => [] do
+  system "chmod -R a+w #{VerstakConf::BUILD_BASE_DIR}"
+
   system "rm -R #{VerstakConf::BUILD_BASE_DIR}"
 
   system "mysql"+
@@ -151,7 +152,7 @@ task :install_drupal => [] do
              " --site-mail=#{VerstakConf::DRUSH_DRUPAL_SITE_MAIL}"+
              " --site-name=#{VerstakConf::DRUSH_DRUPAL_SITE_NAME}"
 
-  system "chmod -R a+w #{VerstakConf::BUILD_SITE_FILES}"
+  system "chmod -R a+w #{VerstakConf::BUILD_BASE_DIR}"
 
   system "curl --silent --compressed #{VerstakConf::CRON_URL}"
 
@@ -223,25 +224,24 @@ task :drupal_modules_enable do
 
 end
 
-task :drupal_entities_import do
+desc "drupal_scripts_run"
+task :drupal_scripts_run do
+
+Dir.foreach("#{VerstakConf::CUSTOMIZATION_PATH}/scripts") do |item|
+  next if item == '.' or item == '..'
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/importer.php"
+             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/#{item}"
 
+  system "chmod -R a+w #{VerstakConf::BUILD_SITE_FILES}"
+
+  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} cc all"+
+             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
 end
 
 
-task :drupal_configure do
-
-  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
-             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/configure.php"
-
-  system "chmod -R u+rwX #{VerstakConf::BUILD_SITE_DIR_FULL}"
-
 end
-
 
 task :run_vnc_swerver => [:load_config] do
   system "vncserver #{VerstakConf::VNC_DISPLAY}"
@@ -256,12 +256,4 @@ task :functional_testing => [:load_config] do
   Rake::Task[:run_vnc_swerver].invoke
   system "behat"
   Rake::Task[:kill_vnc_swerver].invoke
-end
-
-task :final_actions_after_build do
-  system "chmod -R a+w #{VerstakConf::BUILD_SITE_FILES}"
-
-   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} cc all"+
-             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
-
 end

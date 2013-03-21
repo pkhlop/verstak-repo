@@ -81,6 +81,7 @@ class VerstakConf
     
     conf.each do |key, val|
       VerstakConf::redef_without_warning(key, val)
+      puts "#{key} = #{val}"
     end
     
   end

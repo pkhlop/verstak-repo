@@ -19,7 +19,7 @@ class TaxonomyImporter{
     }
 
     public function VocabCreate($vocab) {
-        taxonomy_save_vocabulary($vocab);   
+      taxonomy_vocabulary_save((object)$vocab);
     }
 
     public function VocabConfigure($vocab) {
@@ -53,7 +53,7 @@ class TaxonomyImporter{
       $form_values['description'] = $description;
       $form_values['vid'] = $vid;
       $form_values['weight'] = $weight;
-      taxonomy_save_term($form_values);
+      taxonomy_term_save((object)$form_values);
 
       return $form_values['tid'];
     }

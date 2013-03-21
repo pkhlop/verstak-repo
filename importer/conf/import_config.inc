@@ -5,7 +5,7 @@ define("IMPORT_ENV", isset($_SERVER["REQUEST_METHOD"]) ? IMPORT_ENV_WEB : IMPORT
 
 global $json_conf;
 
-$json_conf = file_get_contents(__DIR__.'/../../../config.json');
+$json_conf = file_get_contents(__DIR__.'/../config.json');
 
 $json_conf = json_decode($json_conf, true);
 
