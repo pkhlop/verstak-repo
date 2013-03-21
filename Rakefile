@@ -29,7 +29,6 @@ task :new_build => [
     :diagnostic,
     :deploy_build,
     :install_drupal,
-    :drupal_modules_download,
     :drupal_modules_enable,
     :drupal_entities_import,
     :final_actions_after_build,
@@ -44,11 +43,13 @@ end
 
 desc "Generate new config and save it"
 task :configure do
+  require "config"
   VerstakConf::export_json
 end
 
 desc "Load persisted config"
 task :load_config => [] do
+  require "config"
   VerstakConf::import_json
 end
 
@@ -123,25 +124,31 @@ task :deploy_build => [:clean_build] do
   Dir::mkdir VerstakConf::BUILD_BASE_DIR
   Dir::mkdir VerstakConf::BUILD_SITE_LOG
   Dir::mkdir VerstakConf::BUILD_SITE_TMP
-  Dir::mkdir VerstakConf::BUILD_SITE_DIR_FULL
+
 
   rm_f "#{VerstakConf::BASE_DIR}/#{VerstakConf::BUILDS_DIR}/#{VerstakConf::LAST_BUILD_DIR}"
   ln_sf VerstakConf::BUILD_BASE_DIR, "#{VerstakConf::BASE_DIR}/#{VerstakConf::BUILDS_DIR}/#{VerstakConf::LAST_BUILD_DIR}"
 end
 
 task :install_drupal => [] do
-
-  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS}"+
-             " --destination=#{VerstakConf::BUILD_BASE_DIR}"+
-             " --drupal-project-rename=#{VerstakConf::SITE_DIR_NAME}"+
-             " --cache"+
-             " dl #{VerstakConf::DRUSH_DRUPAL_VERSION}"
-
+  
+  puts "download files by make-file"
+  
+  if File.exist?("#{VerstakConf::CUSTOMIZATION_PATH}/custom.make") and File.file?("#{VerstakConf::CUSTOMIZATION_PATH}/custom.make")
+    puts "Custom make-file is exist"
+    system "drush make #{VerstakConf::CUSTOMIZATION_PATH}/custom.make #{VerstakConf::BUILD_SITE_DIR_FULL}"
+  else
+    puts "Custom makefile is not exist. Use default make-file"
+    system "drush make #{VerstakConf::CURRENT_DIR}/default.make #{VerstakConf::BUILD_SITE_DIR_FULL}"
+  end
+  
+  puts "!!creating database!!"
   system "mysql"+
              " --user=#{VerstakConf::MYSQL_USER}"+
              " --password=#{VerstakConf::MYSQL_PASS}"+
              " -e \"create database #{VerstakConf::MYSQL_DBNAME}\""
 
+  puts "!!install site!!"
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} site-install"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
              " --db-url=#{VerstakConf::MYSQL_CONNECTION_STRING}"+
@@ -183,21 +190,6 @@ def copy_recursive(from, to)
   puts "copy from #{from} to #{to}"
   cp_r from, to
 end
-
-task :drupal_modules_download do
-  file = File.open "#{VerstakConf::CUSTOMIZATION_PATH}/drush/module_list.txt"
-  a = file.read.to_s
-  mlist = a.strip.gsub(/\n/, ' ')
-
-  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} pm-download"+
-             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " --cache"+
-             " #{mlist}"
-
-  Rake::Task[:drupal_custom_modules_deploy].invoke
-
-end
-
 
 task :drupal_modules_enable do
   file = File.open "#{VerstakConf::CUSTOMIZATION_PATH}/drush/module_enable_list.txt"
