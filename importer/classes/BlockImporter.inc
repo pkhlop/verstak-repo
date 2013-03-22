@@ -46,7 +46,13 @@ class BlockImporter{
         
         $form_state = array();
         $form_state['values'] = $block;
-        
+
+        if(isset($block) && isset($block['info'])) {
+          db_delete('block_custom')
+            ->condition('info', $block['info'])
+            ->execute();
+        }
+
         $delta = db_insert('block_custom')
           ->fields(array(
             'body' => $form_state['values']['body']['value'],
@@ -55,52 +61,40 @@ class BlockImporter{
           ))
           ->execute();
         
-        $block['delta'] = $delta;
-        $deltas[$key] = $block['delta'];
+        $deltas[$key] = $delta;
       }
+
       return $deltas;
     }
     
     public function BlocksConfigure($blocks) {
+
       foreach($blocks as $block){
         echo "----Configure block----{$block[info]}\n";
-        
+
+
         //Add block to regions of different themes
         foreach ($block['regions'] as $theme => $region) {
           echo "----Region----{$block[info]}\n";
           $block_fields = array();
+          $block_fields += $region;
+          $block_fields['theme']  = $theme;
+          $block_fields['module']  = $block['module'];
           $block_fields['delta']  = $block['delta'];
-          $block_fields['module'] = $block['module'];
-          $block_fields['delta']  = $block['delta'];
-          $block_fields['weight'] = $block['weight'];
-          $block_fields['status'] = $block['status'];
-          $block_fields['visibility'] = $block['visibility'];
-          $block_fields['theme']  =  $theme;
-          $block_fields['region'] = $region;
-          $block_fields['pages'] = $block['pages'];
+
+
+          if(isset($block) && isset($block['module']) && isset($block['delta']) && isset($block_fields['theme'])) {
+            db_delete('block')
+              ->condition('module', $block['module'])
+              ->condition('delta', $block['delta'])
+              ->condition('theme', $block_fields['theme'])
+            ->execute();
+          }
+
           $res = drupal_write_record('block', $block_fields);
+
           echo 'Result';
-          var_dump($res);
         }
       }
     }
-    
-    
-    public function BlocksOutline($blocks) {
-      
-      foreach ($blocks as $block){
-        $form_state['values'] = $block;
-        
-        db_update('block')
-          ->fields(array(
-            'region' => ($region == BLOCK_REGION_NONE ? '' : $region),
-            'pages' => trim($form_state['values']['pages']),
-            'status' => (int)($region != BLOCK_REGION_NONE),
-          ))
-          ->condition('theme', 'zen')
-          ->execute();
-      }
-      drupal_set_message(t('The block settings have been updated.'));
-    }
-
 }
