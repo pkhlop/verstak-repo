@@ -23,25 +23,29 @@ class ImageCacheImporter{
           }
 
           foreach($preset as $line) {
-            $this->saveFromJSON($line);
+            $this->saveFromSerialized($line);
           }
         }
     }
 
-    public function saveFromJSON($json) {
+    public function saveFromSerialized($serialized) {
 
       try{
 
-        $style = image_styles_admin_import_extract_style($json);
-        $new_style = image_style_save($style);
-        if (isset($new_style['is_new'])) {
-          drush_log(t('Style !name has been created.', array('!name' => $style['name'])), 'ok');
+        $style = image_styles_admin_import_extract_style($serialized);
+
+        $existed_style = image_style_load($style['name']);
+        if ($existed_style) {
+          image_style_delete($existed_style);
+          image_style_save($style);
+          drush_log(t('Style !name has been RECREATED.', array('!name' => $style['name'])), 'ok');
         }
         else {
-          drush_log(t('Style !name has been updated.', array('!name' => $style['name'])), 'ok');
+          image_style_save($style);
+          drush_log(t('Style !name has been created.', array('!name' => $style['name'])), 'ok');
         }
       } catch (Exception $e) {
-        drush_log("Error import image style: \n$json\n", 'error');
+        drush_log("Error import image style: \n$serialized\n", 'error');
       }
 
     }
