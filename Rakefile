@@ -227,17 +227,18 @@ end
 desc "drupal_scripts_run"
 task :drupal_scripts_run do
 
-Dir.foreach("#{VerstakConf::CUSTOMIZATION_PATH}/scripts") do |item|
+Dir.glob("#{VerstakConf::CUSTOMIZATION_PATH}/scripts/*").sort.each do |item|
+  puts item
   next if item == '.' or item == '..'
 
   system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} php-script"+
              " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"+
-             " #{VerstakConf::CUSTOMIZATION_PATH}/scripts/#{item}"
+             " #{item}"
 
   system "chmod -R a+w #{VerstakConf::BUILD_SITE_FILES}"
 
-  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} cc all"+
-             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
+#  system "drush #{VerstakConf::DRUSH_COMMAND_PARAMS} cc all"+
+#             " --root=#{VerstakConf::BUILD_SITE_DIR_FULL}"
 end
 
 
