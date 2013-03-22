@@ -16,13 +16,13 @@ class MenuImporter{
       $form_state = array();
       $form_state['values'] = $menu['menu'];
       echo "Add menu: \"{$menu[menu][menu_name]}::{$menu[menu][title]}\"\n";
-      drupal_form_submit('menu_edit_menu', $form_state, array(), 'create', array());
+      drupal_form_submit('menu_edit_menu', $form_state);
 
       $items = $this->ParseMenuItems($menu);
       $this->ImportMenuItems($menu, $items);
-      drupal_flush_all_caches();
-      menu_rebuild();
     }
+    drupal_flush_all_caches();
+    menu_rebuild();
   }
 
   function getIndent($string){
