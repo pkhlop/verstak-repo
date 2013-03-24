@@ -10,9 +10,8 @@ class ViewsImporter{
         $this->storage->Load();
         $views = $this->storage->Get();
         foreach ($views as $view){
-          echo "\nImport {$view[name]}\n";
-          $result = $this->view_import($view['name'], $view['macro']);
-          echo "\nresult ".var_export($result)."\n";
+          drush_log(t('Import !view.', array('!view' => $view['name'],)), 'ok');
+          $this->view_import($view['name'], $view['macro']);
         }
     }
     

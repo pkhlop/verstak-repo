@@ -20,9 +20,9 @@ class MenuImporter{
 
       $items = $this->ParseMenuItems($menu);
       $this->ImportMenuItems($menu, $items);
-      drupal_flush_all_caches();
-      menu_rebuild();
     }
+    drupal_flush_all_caches();
+    menu_rebuild();
   }
 
   function getIndent($string){

@@ -1,0 +1,8 @@
+<?php
+//$input['format'] NEW
+$input['name'] = 'System Path Overwrite';
+$input['filters'] = array("pathologic/0"=>1);
+$input['roles'] = array();
+//$input['default_format'] = 1
+
+

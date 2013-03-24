@@ -19,7 +19,19 @@ class TaxonomyImporter{
     }
 
     public function VocabCreate($vocab) {
-        taxonomy_save_vocabulary($vocab);   
+
+      static $vocabs = array();
+      $vocabs = $vocabs ?: taxonomy_get_vocabularies(NULL);
+
+      foreach ($vocabs as $vocab_object) {
+        if ($vocab_object->machine_name == $vocab['machine_name']) {
+          drush_log(t('Dictionary "!name" already existed.', array('!name' => $vocab['machine_name'])), 'warning');
+          return ;
+        }
+      }
+
+      taxonomy_vocabulary_save((object)$vocab);
+      drush_log(t('Dictionary "!name" has been created.', array('!name' => $vocab['machine_name'])), 'ok');
     }
 
     public function VocabConfigure($vocab) {
@@ -28,11 +40,11 @@ class TaxonomyImporter{
 
     public function VocabItems($vocab) {
         $items = array_filter(explode("\n", $vocab['items']));
-        
-        $vid = $this->getVidByName($vocab['name']);
+
+        $vocab['vid'] = $this->getVidByName($vocab['name']);
         
         foreach($items as $weight => $name){
-            $this->addTaxonomyTerm($name,$vid,'',$weight);
+          $this->addTaxonomyTerm($name, $vocab, '', $weight);
         }
     }
     
@@ -46,14 +58,29 @@ class TaxonomyImporter{
         return false;
     }
     
-    protected function addTaxonomyTerm($name, $vid, $description = '', $weight = 0) {
+    protected function addTaxonomyTerm($name, $vocab, $description = '', $weight = 0) {
+
+      $term = taxonomy_get_term_by_name($name, $vocab['machine_name']);
+      if(!empty($term)) {
+        drush_log(t('Term "!name [vid:!vid tid:!tid]" already existed.', array('!name' => $name,
+            '!vid' => $vocab['vid'],
+            '!tid' => current($term)->tid)),
+          'warning');
+        return ;
+      }
 
       $form_values = array();
       $form_values['name'] = $name;
       $form_values['description'] = $description;
-      $form_values['vid'] = $vid;
+      $form_values['vid'] = $vocab['vid'];
       $form_values['weight'] = $weight;
-      taxonomy_save_term($form_values);
+
+
+      taxonomy_term_save((object)$form_values);
+
+      drush_log(t('Term "!name [vid:!vid tid:!tid]" has been created.', array('!name' => $name, '!vid' => $vocab['vid'],
+          '!tid' => $form_values['tid'])),
+        'ok');
 
       return $form_values['tid'];
     }
