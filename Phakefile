@@ -26,8 +26,7 @@
   task(
     'dev_remove',
 //  'set_dev_env', 'configure',
-    function () {
-      global $VerstakConf;
+    function () use (&$VerstakConf) {
 
       //TODO: we should do checks before such operations
       try_command(
@@ -52,7 +51,7 @@
   desc("Set development environment");
   task(
     'set_dev_env',
-    function () {
+    function () use (&$VerstakConf) {
       putenv('BUILD_NUMBER=dev');
       global $buildNumber;
       $buildNumber = 'dev';
@@ -63,8 +62,7 @@
   desc("Generate new config and save it");
   task(
     'configure',
-    function () {
-      global $VerstakConf;
+    function () use (&$VerstakConf) {
       file_put_contents('config.json', json_encode($VerstakConf));
     }
   );
@@ -72,10 +70,9 @@
   desc("Load persisted config");
   task(
     'load_config',
-    function () {
+    function () use (&$VerstakConf) {
       builder_info("Load config");
 
-      global $VerstakConf;
       $conf = file_get_contents('config.json');
       $VerstakConf = json_decode($conf) + $VerstakConf;
     }
@@ -84,8 +81,7 @@
   desc("This command checks the environment for the presence of all components");
   task(
     'diagnostic',
-    function () {
-      global $VerstakConf;
+    function () use (&$VerstakConf) {
 
       builder_info('============================================================');
       builder_info('==================DIAGNOSTIC BUILD SYSTEM===================');
@@ -115,12 +111,10 @@
     }
   );
 
-
   desc("Clean build");
   task(
     'clean_build',
-    function () {
-      global $VerstakConf;
+    function () use (&$VerstakConf) {
       try_command("chmod -R a+w $VerstakConf[BUILD_BASE_DIR]", "set permissions on base directory", 'finished',
         "ERROR: chmod -R a+w $VerstakConf[BUILD_BASE_DIR]");
 
@@ -134,15 +128,11 @@
           " -e \"DROP DATABASE IF EXISTS $VerstakConf[MYSQL_DBNAME]\""
         ,
         "Remove database");
-
-
     }
   );
 
   desc('Deploy new build');
-  task('deploy_build', 'clean_build', function () {
-
-      global $VerstakConf;
+  task('deploy_build', 'clean_build', function () use (&$VerstakConf) {
 
       mkdir($VerstakConf['BUILD_BASE_DIR']);
       mkdir($VerstakConf['BUILD_SITE_LOG']);
@@ -157,9 +147,7 @@
   desc("install Drupal");
   task(
     'install_drupal',
-    function () {
-      global $VerstakConf;
-
+    function () use (&$VerstakConf) {
       builder_message("download files by make-file");
 
       if (file_exists("$VerstakConf[CUSTOMIZATION_PATH]/custom.make")) {
@@ -203,72 +191,75 @@
   );
 
 
+  desc('deploy custom modules, themes and libs to sites directory');
+  task(
+    'drupal_custom_modules_deploy',
+    function () use (&$VerstakConf) {
+      builder_message("deploy Custom modules");
+      try_command("cp -a $VerstakConf[CUSTOMIZATION_PATH]/sites  $VerstakConf[BUILD_SITE_DIR_FULL]/sites/all/",
+        'deploy custom modules, themes and libs to sites directory');
+    });
+
+  desc('enable modules');
+  task(
+    'drupal_modules_enable',
+    function () use (&$VerstakConf) {
+
+      $file = file("$VerstakConf[CUSTOMIZATION_PATH]/drush/module_enable_list.txt");
+      $mlist = implode(' ', $file);
+
+//      disable update status for speedup
+      try_command(
+        "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-disable" .
+          " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" .
+          " update",
+        "disable update status for speedup");
+
+      try_command(
+        "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-enable" .
+          " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" .
+          " libraries",
+        "enable libraries module first");
+
+      try_command(
+        "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-enable" .
+          " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" .
+          " $mlist",
+        "enable modules");
+
+      try_command(
+        "drush $VerstakConf[DRUSH_COMMAND_PARAMS] vset" .
+          " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" .
+          " theme_default" .
+          " $VerstakConf[DRUSH_DRUPAL_SITE_DEFAULT_THEME]",
+        "enable default theme");
+    });
+
+  desc("drupal_scripts_run");
+  task(
+    'drupal_scripts_run',
+    function () use ($VerstakConf) {
+
+      $files = sort(glob("$VerstakConf[CUSTOMIZATION_PATH]/scripts/*"));
+
+      foreach ($files as $file) {
+
+
+        try_command("drush $VerstakConf[DRUSH_COMMAND_PARAMS] php-script" .
+          " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" .
+          " $VerstakConf[CUSTOMIZATION_PATH]/scripts/$file",
+        "Run script $VerstakConf[CUSTOMIZATION_PATH]/scripts/$file");
+      }
+
+
+      //TODO: move to separate task
+      try_command("chmod -R a+w $VerstakConf[BUILD_SITE_FILES]",
+      "Change permissions on build directory");
+    });
+
+
+
 /*
-
-task :drupal_custom_modules_deploy do
-  puts "deploy Custom modules"
-  copy_recursive("$VerstakConf[CUSTOMIZATION_PATH]/sites/modules", "$VerstakConf[BUILD_SITE_DIR_FULL]/sites/all/")
-  copy_recursive("$VerstakConf[CUSTOMIZATION_PATH]/sites/them
-es", "$VerstakConf[BUILD_SITE_DIR_FULL]/sites/all/")
-  copy_recursive("$VerstakConf[CUSTOMIZATION_PATH]/sites/libraries", "$VerstakConf[BUILD_SITE_DIR_FULL]/sites/all/")
-end
-
-def copy_recursive(from, to)
-  puts "copy from #{from} to #{to}"
-  cp_r from, to
-end
-
-task :drupal_modules_enable do
-  file = File . open "$VerstakConf[CUSTOMIZATION_PATH]/drush/module_enable_list.txt"
-  a = file . read . to_s
-  mlist = a . strip . gsub(/\n /, ' ')
-
-  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-disable" + # disable update status for speedup
-  " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" +
-  " update"
-
-  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-enable" +
-  " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" +
-  " libraries"
-
-  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] pm-enable" +
-  " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" +
-  " #{mlist}"
-
-  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] vset" +
-  " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" +
-  " theme_default" +
-  " $VerstakConf[DRUSH_DRUPAL_SITE_DEFAULT_THEME]"
-
-end
-
-desc "drupal_scripts_run"
-task :drupal_scripts_run do
-
-  Dir . glob("$VerstakConf[CUSTOMIZATION_PATH]/scripts/*") . sort . each do |item |
-  puts item
-  next if item == '.' or item == '..'
-
-  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] php-script" +
-  " --root=$VerstakConf[BUILD_SITE_DIR_FULL]" +
-  " #{item}"
-
-  system "chmod -R a+w $VerstakConf[BUILD_SITE_FILES]"
-
-#  system "drush $VerstakConf[DRUSH_COMMAND_PARAMS] cc all"+
-#             " --root=$VerstakConf[BUILD_SITE_DIR_FULL]"
-end
-
-
-end
-
-task :run_vnc_swerver => [:load_config] do
-  system "vncserver $VerstakConf[VNC_DISPLAY]"
-end
-
-task :kill_vnc_swerver => [:load_config] do
-  system "vncserver -kill $VerstakConf[VNC_DISPLAY]"
-end
 
 desc "Run Functional Testing"
 task :functional_testing => [:load_config] do
